@@ -102,7 +102,22 @@ define(function (require, exports, module) {
         this.genOptions = options;
 
         var getFilePath = function (extenstions) {
-            var abs_path = path + "/" + elem.name + ".";
+
+            var abs_path = path + "/";
+            for(var i = 0; i <  elem.name.length; i++) {  
+                var c = elem.name.charAt(i);
+                if(c >= "A" && c <= "Z") {
+                    if(i>=1){
+                        if(!(elem.name.charAt(i-1) >= "A" && elem.name.charAt(i-1) <= "Z")){
+                            abs_path += "_";
+                        }
+                    }
+                    abs_path += c.toLowerCase();
+                } else {
+                    abs_path += c;
+                }
+            }
+            abs_path += ".";
             if (extenstions === _CPP_CODE_GEN_H) {
                 abs_path += _CPP_CODE_GEN_H;
             } else {
@@ -579,7 +594,7 @@ define(function (require, exports, module) {
             } else if (elem.isAbstract === true) {
                 methodStr += "virtual ";
             }
-
+            
             var returnTypeParam = _.filter(elem.parameters, function (params) {
                 return params.direction === "return";
             });
@@ -590,9 +605,16 @@ define(function (require, exports, module) {
             for (i = 0; i < inputParams.length; i++) {
                 var inputParam = inputParams[i];
                 inputParamStrings.push(this.getType(inputParam) + " " + inputParam.name);
-                docs += "\n@param " + inputParam.name;
+                docs += "\n@param[in] " + inputParam.name;
             }
-
+            var outputParams = _.filter(elem.parameters, function (params) {
+                return params.direction === "out";
+            });
+            for (i = 0; i < outputParams.length; i++) {
+                var outputParam = outputParams[i];
+                inputParamStrings.push(this.getType(outputParam) + " " + outputParam.name);
+                docs += "\n@param[out] " + outputParam.name;
+            }
             methodStr += ((returnTypeParam.length > 0) ? this.getType(returnTypeParam[0]) : "void") + " ";
 
             if (isCppBody) {
@@ -740,9 +762,17 @@ define(function (require, exports, module) {
                 }
             } else if (elem.multiplicity !== "1" && elem.multiplicity.match(/^\d+$/)) { // number
                 //TODO check here
-                _type += "[]";
+                _type += "["+elem.multiplicity+"]";
             }
         }
+        
+        
+        if (elem.isReadOnly === true) {
+            _type = "const " + _type;
+        }
+        if (elem.direction === "out") {
+            _type += "&";
+        } 
         return _type;
     };
 
