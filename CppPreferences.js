@@ -53,6 +53,12 @@ define(function (require, exports, module) {
             type: "Check",
             default: true
         },
+        "Cpp.gen.useSpecification": {
+            text: "Use specification as methond implementation",
+            description: "Use specification as methond implementation.",
+            type: "Check",
+            default: true
+        },
         "Cpp.gen.genCpp": {
             text: "Generate *.cpp file",
             description: "Generate cpp file",
@@ -104,6 +110,7 @@ define(function (require, exports, module) {
             useTab              : PreferenceManager.get("Cpp.gen.useTab"),
             indentSpaces        : PreferenceManager.get("Cpp.gen.indentSpaces"),
             useVector            : PreferenceManager.get("Cpp.gen.useVector"),
+            useSpecification     : PreferenceManager.get("Cpp.gen.useSpecification"),
             includeHeader         : PreferenceManager.get("Cpp.gen.includeHeader"),
             genCpp              : PreferenceManager.get("Cpp.gen.genCpp")
         };

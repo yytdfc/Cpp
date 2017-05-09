@@ -104,7 +104,7 @@ define(function (require, exports, module) {
         var getFilePath = function (extenstions) {
 
             var abs_path = path + "/";
-            for(var i = 0; i <  elem.name.length; i++) {  
+            for(var i = 0; i <  elem.name.length; i++) {
                 var c = elem.name.charAt(i);
                 if(c >= "A" && c <= "Z") {
                     if(i>=1){
@@ -594,7 +594,7 @@ define(function (require, exports, module) {
             } else if (elem.isAbstract === true) {
                 methodStr += "virtual ";
             }
-            
+
             var returnTypeParam = _.filter(elem.parameters, function (params) {
                 return params.direction === "return";
             });
@@ -604,16 +604,18 @@ define(function (require, exports, module) {
             var inputParamStrings = [];
             for (i = 0; i < inputParams.length; i++) {
                 var inputParam = inputParams[i];
-                inputParamStrings.push(this.getType(inputParam) + " " + inputParam.name);
-                docs += "\n@param[in] " + inputParam.name;
+                var paraType = this.getType(inputParam);
+                inputParamStrings.push(paraType + " " + inputParam.name);
+                docs += "\n@param[in]  " + paraType + " " + inputParam.name;
             }
             var outputParams = _.filter(elem.parameters, function (params) {
                 return params.direction === "out";
             });
             for (i = 0; i < outputParams.length; i++) {
                 var outputParam = outputParams[i];
-                inputParamStrings.push(this.getType(outputParam) + " " + outputParam.name);
-                docs += "\n@param[out] " + outputParam.name;
+                var paraType = this.getType(outputParam);
+                inputParamStrings.push(paraType + " " + outputParam.name);
+                docs += "\n@param[out] " + paraType + " " + outputParam.name;
             }
             methodStr += ((returnTypeParam.length > 0) ? this.getType(returnTypeParam[0]) : "void") + " ";
 
@@ -635,26 +637,36 @@ define(function (require, exports, module) {
                 methodStr += specifier;
                 methodStr += elem.name;
                 methodStr += "(" + inputParamStrings.join(", ") + ")" + " {\n";
+
+                if (elem.specification!=undefined && this.genOptions.useSpecification){
+                    var strs = elem.specification.split("\n");
+                    for (i=0;i<strs.length ;i++ ) {
+                        methodStr += indentLine + strs[i] + "\n";
+                    }
+                }
                 if (returnTypeParam.length > 0) {
                     var returnType = this.getType(returnTypeParam[0]);
-                    if (returnType === "boolean" || returnType === "bool") {
-                        methodStr += indentLine + "return false;";
-                    } else if (returnType === "int" || returnType === "long" || returnType === "short" || returnType === "byte") {
-                        methodStr += indentLine + "return 0;";
-                    } else if (returnType === "double" || returnType === "float") {
-                        methodStr += indentLine + "return 0.0;";
-                    } else if (returnType === "char") {
-                        methodStr += indentLine + "return '0';";
-                    } else if (returnType === "string" || returnType === "String") {
-                        methodStr += indentLine + 'return "";';
-                    } else if (returnType === "void") {
-                        methodStr += indentLine + "return;";
-                    } else {
-                        methodStr += indentLine + "return null;";
+                    if (elem.specification==undefined || !this.genOptions.useSpecification){
+                        if (returnType === "boolean" || returnType === "bool") {
+                            methodStr += indentLine + "return false;";
+                        } else if (returnType === "int" || returnType === "long" || returnType === "short" || returnType === "byte") {
+                            methodStr += indentLine + "return 0;";
+                        } else if (returnType === "double" || returnType === "float") {
+                            methodStr += indentLine + "return 0.0;";
+                        } else if (returnType === "char") {
+                            methodStr += indentLine + "return '0';";
+                        } else if (returnType === "string" || returnType === "String") {
+                            methodStr += indentLine + 'return "";';
+                        } else if (returnType === "void") {
+                            methodStr += indentLine + "return;";
+                        } else {
+                            methodStr += indentLine + "return null;";
+                        }
+                        methodStr += "\n";
                     }
-                    docs += "\n@return " + returnType;
+                    docs += "\n@return     " + returnType +" " + returnTypeParam[0].name;
                 }
-                methodStr += "\n}";
+                methodStr += "}";
             } else {
                 methodStr += elem.name;
                 methodStr += "(" + inputParamStrings.join(", ") + ")";
@@ -765,14 +777,14 @@ define(function (require, exports, module) {
                 _type += "["+elem.multiplicity+"]";
             }
         }
-        
-        
+
+
         if (elem.isReadOnly === true) {
             _type = "const " + _type;
         }
         if (elem.direction === "out") {
             _type += "&";
-        } 
+        }
         return _type;
     };
 
