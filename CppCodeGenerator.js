@@ -96,27 +96,37 @@ define(function (require, exports, module) {
         }
     };
 
+    /**
+     * Return Indent String based on options
+     * @param {string} name
+     * @return {string}
+     */
+    CppCodeGenerator.prototype.convertFileName = function (name) {
+        var filename = "";
+        for(var i = 0; i <  name.length; i++) {
+            var c = name.charAt(i);
+            if(c >= "A" && c <= "Z") {
+                if(i>=1){
+                    if(!(name.charAt(i-1) >= "A" && name.charAt(i-1) <= "Z")){
+                        filename += "_";
+                    }
+                }
+                filename += c.toLowerCase();
+            } else {
+                filename += c;
+            }
+        }
+        return filename;
+    }
+    
 
     CppCodeGenerator.prototype.generate = function (elem, path, options) {
 
         this.genOptions = options;
 
-        var getFilePath = function (extenstions) {
-
+        var getFilePath = function (extenstions, cppCodeGen) {
             var abs_path = path + "/";
-            for(var i = 0; i <  elem.name.length; i++) {
-                var c = elem.name.charAt(i);
-                if(c >= "A" && c <= "Z") {
-                    if(i>=1){
-                        if(!(elem.name.charAt(i-1) >= "A" && elem.name.charAt(i-1) <= "Z")){
-                            abs_path += "_";
-                        }
-                    }
-                    abs_path += c.toLowerCase();
-                } else {
-                    abs_path += c;
-                }
-            }
+            abs_path += cppCodeGen.convertFileName(elem.name);
             abs_path += ".";
             if (extenstions === _CPP_CODE_GEN_H) {
                 abs_path += _CPP_CODE_GEN_H;
@@ -319,12 +329,12 @@ define(function (require, exports, module) {
         } else if (elem instanceof type.UMLClass) {
 
             // generate class header elem_name.h
-            file = FileSystem.getFileForPath(getFilePath(_CPP_CODE_GEN_H));
+            file = FileSystem.getFileForPath(getFilePath(_CPP_CODE_GEN_H, this));
             FileUtils.writeText(file, this.writeHeaderSkeletonCode(elem, options, writeClassHeader), true).then(result.resolve, result.reject);
 
             // generate class cpp elem_name.cpp
             if (options.genCpp) {
-                file = FileSystem.getFileForPath(getFilePath(_CPP_CODE_GEN_CPP));
+                file = FileSystem.getFileForPath(getFilePath(_CPP_CODE_GEN_CPP, this));
                 FileUtils.writeText(file, this.writeBodySkeletonCode(elem, options, writeClassBody), true).then(result.resolve, result.reject);
             }
 
@@ -333,13 +343,13 @@ define(function (require, exports, module) {
              * interface will convert to class which only contains virtual method and member variable.
              */
             // generate interface header ONLY elem_name.h
-            file = FileSystem.getFileForPath(getFilePath(_CPP_CODE_GEN_H));
+            file = FileSystem.getFileForPath(getFilePath(_CPP_CODE_GEN_H, this));
             FileUtils.writeText(file, this.writeHeaderSkeletonCode(elem, options, writeClassHeader), true).then(result.resolve, result.reject);
 
         } else if (elem instanceof type.UMLEnumeration) {
             // generate enumeration header ONLY elem_name.h
 
-            file = FileSystem.getFileForPath(getFilePath(_CPP_CODE_GEN_H));
+            file = FileSystem.getFileForPath(getFilePath(_CPP_CODE_GEN_H, this));
             FileUtils.writeText(file, this.writeHeaderSkeletonCode(elem, options, writeEnumeration), true).then(result.resolve, result.reject);
         } else {
             result.resolve();
@@ -391,7 +401,7 @@ define(function (require, exports, module) {
 
         codeWriter.writeLine(copyrightHeader);
         codeWriter.writeLine();
-        codeWriter.writeLine("#include \"" +  elem.name + ".h\"");
+        codeWriter.writeLine("#include \"" +  this.convertFileName(elem.name) + ".h\"");
         codeWriter.writeLine();
         funct(codeWriter, elem, this);
         return codeWriter.getData();
@@ -617,8 +627,9 @@ define(function (require, exports, module) {
                 inputParamStrings.push(paraType + " " + outputParam.name);
                 docs += "\n@param[out] " + paraType + " " + outputParam.name;
             }
-            methodStr += ((returnTypeParam.length > 0) ? this.getType(returnTypeParam[0]) : "void") + " ";
-
+            if (elem.stereotype!="constructor" && elem.stereotype!="destructor") {
+                methodStr += ((returnTypeParam.length > 0) ? this.getType(returnTypeParam[0]) : "void") + " ";
+            }
             if (isCppBody) {
                 var t_elem = elem;
                 var specifier = "";
