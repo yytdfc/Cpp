@@ -29,7 +29,7 @@ define(function (require, exports, module) {
     "use strict";
 
     var _CPP_CODE_GEN_H = "h";
-    var _CPP_CODE_GEN_CPP = "cpp";
+    var _CPP_CODE_GEN_CPP = "cc";
 
     var _CPP_PUBLIC_MOD = "public";
     var _CPP_PROTECTED_MOD = "protected";
@@ -615,8 +615,22 @@ define(function (require, exports, module) {
             for (i = 0; i < inputParams.length; i++) {
                 var inputParam = inputParams[i];
                 var paraType = this.getType(inputParam);
-                inputParamStrings.push(paraType + " " + inputParam.name);
-                docs += "\n@param[in]  " + paraType + " " + inputParam.name;
+                var surfix = ""
+                if(!isCppBody){
+                    if (inputParam.defaultValue && inputParam.defaultValue.length > 0) {
+                        surfix+=" = " + inputParam.defaultValue;
+                    }
+                }
+                var multiplicity=inputParam.multiplicity
+                if (multiplicity){
+                    if (multiplicity !== "1" && multiplicity.match(/^\d+$/)) { // number
+                        //TODO check here
+                        surfix+="["+multiplicity+"]";
+                    }
+                }
+                inputParamStrings.push(paraType + " " + inputParam.name+surfix);
+                
+                docs += "\n@param[in]  " + paraType + " " + inputParam.name+surfix;
             }
             var outputParams = _.filter(elem.parameters, function (params) {
                 return params.direction === "out";
@@ -624,8 +638,16 @@ define(function (require, exports, module) {
             for (i = 0; i < outputParams.length; i++) {
                 var outputParam = outputParams[i];
                 var paraType = this.getType(outputParam);
-                inputParamStrings.push(paraType + " " + outputParam.name);
-                docs += "\n@param[out] " + paraType + " " + outputParam.name;
+                var surfix = ""
+                var multiplicity=outputParam.multiplicity
+                if (multiplicity)
+                    if (multiplicity !== "1" && multiplicity.match(/^\d+$/)) { // number
+                        //TODO check here
+                        surfix+="["+multiplicity+"]";
+                    }
+                inputParamStrings.push(paraType + " " + outputParam.name+surfix);
+                docs += "\n@param[out] " + paraType + " " + outputParam.name+surfix;
+                
             }
             if (elem.stereotype!="constructor" && elem.stereotype!="destructor") {
                 methodStr += ((returnTypeParam.length > 0) ? this.getType(returnTypeParam[0]) : "void") + " ";
@@ -647,7 +669,11 @@ define(function (require, exports, module) {
 
                 methodStr += specifier;
                 methodStr += elem.name;
-                methodStr += "(" + inputParamStrings.join(", ") + ")" + " {\n";
+                methodStr += "(" + inputParamStrings.join(", ") + ")";
+                if(elem.isQuery){
+                    methodStr += " const";
+                }
+                methodStr += " {\n";
 
                 if (elem.specification!=undefined && this.genOptions.useSpecification){
                     var strs = elem.specification.split("\n");
@@ -681,7 +707,9 @@ define(function (require, exports, module) {
             } else {
                 methodStr += elem.name;
                 methodStr += "(" + inputParamStrings.join(", ") + ")";
-
+                if(elem.isQuery){
+                    methodStr += " const";
+                }
                 if (elem.isLeaf === true) {
                     methodStr += " final";
                 } else if (elem.isAbstract === true) { // TODO 만약 virtual 이면 모두 pure virtual? 체크 할것
@@ -785,7 +813,7 @@ define(function (require, exports, module) {
                 }
             } else if (elem.multiplicity !== "1" && elem.multiplicity.match(/^\d+$/)) { // number
                 //TODO check here
-                _type += "["+elem.multiplicity+"]";
+                // _type += "["+elem.multiplicity+"]";
             }
         }
 
@@ -793,7 +821,7 @@ define(function (require, exports, module) {
         if (elem.isReadOnly === true) {
             _type = "const " + _type;
         }
-        if (elem.direction === "out") {
+        if (elem.direction === "out" && (!elem.multiplicity || elem.multiplicity==="1")) {
             _type += "&";
         }
         return _type;
